@@ -1,4 +1,4 @@
-import { API } from '../api/requester.js';
+import { API, Methods } from '../api/requester.js';
 
 class Home extends HTMLElement {
     constructor() {
@@ -23,8 +23,7 @@ class Home extends HTMLElement {
         this.shadowRoot.getElementById('start').addEventListener('click', async () => {
             const response = await API.requestBuilder()
                 .url('/api/start')
-                .method('POST')
-                .token('Bearer token')
+                .method(API.Methods.POST)
                 .send();
             console.log(response);
         });

@@ -27,6 +27,9 @@ document.addEventListener('DOMContentLoaded', function () {
     window.addEventListener("popstate", router);
 });
 
+/**
+ * @param {string} path 
+ */
 const navigate = (path) => {
     window.history.pushState({}, '', path);
     window.dispatchEvent(new PopStateEvent('popstate'));

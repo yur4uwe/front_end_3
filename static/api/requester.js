@@ -1,23 +1,61 @@
 //use builder + currying
 
-class Requester {
-    static get = "GET";
-    static post = "POST";
-    static put = "PUT";
-    static delete = "DELETE";
+/**
+ * @typedef {Object} Methods
+ * @property {string} GET
+ * @property {string} POST
+ * @property {string} PUT
+ * @property {string} DELETE
+ */
 
+/**
+ * Class representing HTTP methods.
+ */
+class Methods {
+    constructor() {
+        this.GET = "GET";
+        this.POST = "POST";
+        this.PUT = "PUT";
+        this.DELETE = "DELETE";
+    }
+}
+
+/**
+ * Class representing a Requester.
+ */
+class Requester {
+    /**
+     * Creates an instance of Requester.
+     * @param {string} baseUrl - The base URL for the API.
+     */
     constructor(baseUrl) {
-        this.baseUrl = baseUrl;
+        this.Methods = new Methods();
+        Object.freeze(this.Methods);
+        Object.defineProperty(this, 'baseUrl', {
+            value: baseUrl,
+            writable: false,
+            configurable: false
+        });
     }
 
     /**
-     * @param {string} url 
-     * @returns {string}
+     * Parses the URL.
+     * @param {string} url - The URL to parse.
+     * @returns {string} The full URL.
      */
     parseUrl(url) {
         return this.baseUrl + url;
     }
 
+    /**
+     * Makes an HTTP request.
+     * @param {Object} params - The request parameters.
+     * @param {string} params.url - The URL for the request.
+     * @param {string} params.method - The HTTP method.
+     * @param {Object} [params.body] - The request body.
+     * @param {string} [params.token] - The authorization token.
+     * @returns {Promise<Object>} The response data.
+     */
     async makeRequest({ url, method, body, token }) {
         const response = await fetch(this.parseUrl(url), {
             method,
@@ -30,20 +68,32 @@ class Requester {
         return response.json();
     }
 
+    /**
+     * Creates a new RequestBuilder instance.
+     * @returns {RequestBuilder} The RequestBuilder instance.
+     */
     requestBuilder() {
         return new RequestBuilder(this);
     }
 }
 
+/**
+ * Class representing a RequestBuilder.
+ */
 class RequestBuilder {
+    /**
+     * Creates an instance of RequestBuilder.
+     * @param {Requester} api - The Requester instance.
+     */
     constructor(api) {
         this.api = api;
         this.params = {};
     }
+
     /**
-     * 
-     * @param {string} url 
-     * @returns {RequestBuilder}
+     * Sets the URL for the request.
+     * @param {string} url - The URL.
+     * @returns {RequestBuilder} The RequestBuilder instance.
      */
     url(url) {
         this.params.url = url;
@@ -51,8 +101,9 @@ class RequestBuilder {
     }
 
     /**
-     * @param {string} method 
-     * @returns {RequestBuilder}
+     * Sets the HTTP method for the request.
+     * @param {string} method - The HTTP method.
+     * @returns {RequestBuilder} The RequestBuilder instance.
      */
     method(method) {
         this.params.method = method;
@@ -60,8 +111,9 @@ class RequestBuilder {
     }
 
     /**
-     * @param {string} body 
-     * @returns {RequestBuilder}
+     * Sets the body for the request.
+     * @param {Object} body - The request body.
+     * @returns {RequestBuilder} The RequestBuilder instance.
      */
     body(body) {
         this.params.body = body;
@@ -69,14 +121,19 @@ class RequestBuilder {
     }
 
     /**
-     * @param {string} token 
-     * @returns {RequestBuilder}
+     * Sets the authorization token for the request.
+     * @param {string} token - The authorization token.
+     * @returns {RequestBuilder} The RequestBuilder instance.
      */
     token(token) {
         this.params.token = token;
         return this;
     }
 
+    /**
+     * Sends the request.
+     * @returns {Promise<Object>} The response data.
+     */
     async send() {
         return this.api.makeRequest(this.params);
     }
