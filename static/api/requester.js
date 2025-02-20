@@ -56,16 +56,20 @@ class Requester {
      * @param {string} [params.token] - The authorization token.
      * @returns {Promise<Object>} The response data.
      */
-    async makeRequest({ url, method, body, token }) {
+    async makeRequest({ url, method, body }) {
         const response = await fetch(this.parseUrl(url), {
             method,
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': token
+                'Authorization': this.token
             },
             body: body ? JSON.stringify(body) : null
         });
         return response.json();
+    }
+
+    setToken(token) {
+        this.token = token;
     }
 
     /**
@@ -125,10 +129,10 @@ class RequestBuilder {
      * @param {string} token - The authorization token.
      * @returns {RequestBuilder} The RequestBuilder instance.
      */
-    token(token) {
-        this.params.token = token;
-        return this;
-    }
+    // token(token) {
+    //     this.params.token = token;
+    //     return this;
+    // }
 
     /**
      * Sends the request.
@@ -140,11 +144,10 @@ class RequestBuilder {
 }
 
 // Usage example:
-// const api = new API('https://api.example.com/api');
+// const api = new API('https://api.example.com/api').setToken('token');
 // api.requestBuilder()
 //     .url('/endpoint')
 //     .method(API.get)
-//     .token('your-token')
 //     .send()
 //     .then(response => console.log(response));
 

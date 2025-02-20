@@ -17,8 +17,25 @@ class Home extends HTMLElement {
             </style>
             <h1>Home</h1>
             <p>Welcome to the home page!</p>
+            <form id="login">
+                <input type="text" name="username" placeholder="Username" required> 
+            </form>
             <button id="start">Start</button>
         `;
+
+        this.shadowRoot.getElementById('login').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const username = formData.get('username');
+
+            const response = await API.requestBuilder()
+                .url('/api/login')
+                .method(Methods.POST)
+                .body({ username })
+                .send();
+
+            console.log(response);
+        });
 
         this.shadowRoot.getElementById('start').addEventListener('click', async () => {
             const response = await API.requestBuilder()
