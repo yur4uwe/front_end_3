@@ -3,6 +3,7 @@ document.addEventListener('DOMContentLoaded', function () {
         const path = window.location.pathname;
         const routes = ["/", "/game", "/scoreboard"];
         const main = document.getElementById("main");
+        main.innerHTML = "";
 
         if (routes.includes(path)) {
             const page = path === "/" ? "home" : path.split("/")[1];
@@ -25,6 +26,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     window.addEventListener("popstate", router);
+
+    router();
 });
 
 /**
@@ -34,3 +37,5 @@ const navigate = (path) => {
     window.history.pushState({}, '', path);
     window.dispatchEvent(new PopStateEvent('popstate'));
 };
+
+export { navigate };

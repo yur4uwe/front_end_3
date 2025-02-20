@@ -1,4 +1,5 @@
-import { API, Methods } from '../api/requester.js';
+import API from '../api/requester.js';
+import { navigate } from '../api/router.js';
 
 class Home extends HTMLElement {
     constructor() {
@@ -6,21 +7,25 @@ class Home extends HTMLElement {
         this.attachShadow({ mode: 'open' });
         this.shadowRoot.innerHTML = `
             <style>
-                h1 {
-                    color: #333;
+                :host {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100vh;
                     font-family: 'Arial', sans-serif;
                 }
-                p {
-                    color: #666;
-                    font-family: 'Arial', sans-serif;
+                #login {
+                    display: flex;
+                    align-items: center;
                 }
             </style>
             <h1>Home</h1>
             <p>Welcome to the home page!</p>
             <form id="login">
                 <input type="text" name="username" placeholder="Username" required> 
+                <button type="submit">Start</button>
             </form>
-            <button id="start">Start</button>
         `;
 
         this.shadowRoot.getElementById('login').addEventListener('submit', async (e) => {
@@ -30,19 +35,15 @@ class Home extends HTMLElement {
 
             const response = await API.requestBuilder()
                 .url('/api/login')
-                .method(Methods.POST)
+                .method(API.Methods.POST)
                 .body({ username })
                 .send();
 
             console.log(response);
-        });
 
-        this.shadowRoot.getElementById('start').addEventListener('click', async () => {
-            const response = await API.requestBuilder()
-                .url('/api/start')
-                .method(API.Methods.POST)
-                .send();
-            console.log(response);
+            if (response.status === "success") {
+                navigate('/game');
+            }
         });
     }
 }
