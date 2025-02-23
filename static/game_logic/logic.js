@@ -53,7 +53,7 @@ const gameLoop = (state, ctx, windowHeight, windowWidth) => {
         .drawState(ctx);
 
     eventCapturer();
-    setTimeout(() => gameLoop(new_state, ctx, windowHeight, windowWidth), 0);
+    setTimeout(() => gameLoop(new_state, ctx, windowHeight, windowWidth), 1000 / 60);
 };
 
 export { gameLoop, drawFps };

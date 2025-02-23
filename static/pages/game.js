@@ -28,6 +28,11 @@ class Game extends HTMLElement {
          * @type {HTMLCanvasElement} canvas
          */
         const canvas = this.shadowRoot.getElementById('game');
+
+        // Set the canvas size to match the display size
+        canvas.width = window.innerWidth - 20;
+        canvas.height = window.innerHeight - 20;
+
         const ctx = canvas.getContext('2d');
 
         console.log("Game screen loaded, starting game loop");
