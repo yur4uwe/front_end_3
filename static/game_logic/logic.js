@@ -29,8 +29,10 @@ const acceptedKeys = ["w", "a", "s", "d"];
  * @param {CanvasRenderingContext2D} ctx 
  * @param {number} windowHeight
  * @param {number} windowWidth
+ * @param {HTMLHeadingElement} warningElement
+ * @param {HTMLHeadingElement} scoreElement
  */
-const gameLoop = (state, ctx, windowHeight, windowWidth) => {
+const gameLoop = (state, ctx, windowHeight, windowWidth, warningElement, scoreElement) => {
     fps++;
     const capturedEvents = events.splice(0, events.length);
 
@@ -41,10 +43,12 @@ const gameLoop = (state, ctx, windowHeight, windowWidth) => {
         return;
     } else if (!state) {
         state = new GameEntities();
+        setInterval(() => state.addEnemy(warningElement), 10000);
     }
 
     state = state
         .readEvents(capturedEvents.filter(event => event.type === 'keydown' || event.type === 'keyup'))
+        .determineInteractions()
         .nextState()
         .drawState(ctx);
 
