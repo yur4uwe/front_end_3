@@ -10,7 +10,6 @@ const drawFps = (element) => {
     fps = 0;
 };
 
-
 /**
  * @type {Event[]} events
  */
@@ -33,11 +32,9 @@ const acceptedKeys = ["w", "a", "s", "d"];
  */
 const gameLoop = (state, ctx, windowHeight, windowWidth) => {
     fps++;
-
     const capturedEvents = events.splice(0, events.length);
 
-    // console.log(capturedEvents);
-    ctx.clearRect(0, 0, windowWidth, windowHeight)
+    ctx.clearRect(0, 0, windowWidth, windowHeight);
 
     if (!ctx) {
         console.error('Canvas not found');
@@ -46,14 +43,14 @@ const gameLoop = (state, ctx, windowHeight, windowWidth) => {
         state = new GameEntities();
     }
 
-    const new_state = state
-        .readEvents(capturedEvents
-            .filter(event => event.type === 'keydown' || event.type === 'keyup'))
+    state = state
+        .readEvents(capturedEvents.filter(event => event.type === 'keydown' || event.type === 'keyup'))
         .nextState()
         .drawState(ctx);
 
     eventCapturer();
-    setTimeout(() => gameLoop(new_state, ctx, windowHeight, windowWidth), 1000 / 60);
+
+    requestAnimationFrame(() => gameLoop(state, ctx, windowHeight, windowWidth));
 };
 
 export { gameLoop, drawFps };

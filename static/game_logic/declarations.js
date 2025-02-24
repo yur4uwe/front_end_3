@@ -1,6 +1,7 @@
 
-const GRAVITY = 0.98;
+const GRAVITY = 1;
 const JUMP = 20;
+const HORIZONTAL_SPEED = 5;
 
 class Obstacle {
     /**
@@ -25,8 +26,8 @@ class Obstacle {
             this.y + this.height > entity.y;
     }
 
-    level() {
-        return this.y;
+    size() {
+        return { left: this.x, right: this.x + this.width, top: this.y, bottom: this.y + this.height };
     }
 
     onGround(entity) {
@@ -49,25 +50,44 @@ class Entity {
     }
     /**
      * @param {number} groundLevel
+     * @param {{left: number, right: number, top: number, bottom: number}[]} obstacles
      * @returns {Entity}
      */
-    nextPosition(groundLevel) {
-        console.log('nextPosition:', this.x, this.y, this.movement_x, this.movement_y);
-        this.x += this.movement_x;
+    nextPosition(groundLevel, obstacles) {
+        //console.log('nextPosition:', this.x, this.y, this.movement_x, this.movement_y);
 
-        if (this.movement_y === -JUMP && groundLevel <= this.y + this.height) {
-            console.log('jump');
-            this.movement_y = -JUMP;
-            this.y += this.movement_y;
-        } else if (this.movement_y !== -1 && this.movement_y !== -1 + GRAVITY) {
-            this.y = groundLevel < this.y + this.height + 2 ? groundLevel - this.height : this.y + this.movement_y;
-        }
+        const relevantObstacles = obstacles.filter(obstacle => obstacle.left <= this.x + this.width && obstacle.right >= this.x);
 
-        if (groundLevel <= this.y + this.height) {
-            this.movement_y = 0;
-        } else {
+        const onGround = relevantObstacles.some(obstacle => obstacle.top <= this.y + this.height + 1 && obstacle.bottom >= this.y + this.height + 1);
+        const underCeiling = relevantObstacles.some(obstacle => obstacle.top <= this.y && obstacle.bottom >= this.y);
+
+        this.x += this.movement_x * HORIZONTAL_SPEED;
+
+        if (this.y + this.height < groundLevel && !onGround) {
             this.movement_y += GRAVITY;
+        } else if (this.movement_y === -1 && groundLevel <= this.y + this.height) {
+            this.movement_y = -JUMP;
+        } else if (this.y + this.height > groundLevel) {
+            this.movement_y = 0;
+            this.y = groundLevel - this.height;
         }
+
+        if (this.movement_y === -1 && onGround) {
+            this.movement_y = -JUMP;
+        } else if (onGround) {
+            this.movement_y = 0;
+            relevantObstacles.forEach(obstacle => {
+                if (obstacle.top <= this.y + this.height && obstacle.bottom >= this.y + this.height) {
+                    this.y = obstacle.top - this.height;
+                }
+            });
+        }
+
+        if (underCeiling) {
+            this.movement_y = GRAVITY;
+        }
+
+        this.y += this.movement_y;
 
         return this;
     }
@@ -78,18 +98,31 @@ class Entity {
      * @param {number} ground
      * @returns {Entity}
      */
-    newMovement(movement_x, movement_y, groundLevel) {
-        //console.log('newMovement:', movement_x, movement_y);
+    newMovement(movement_x, movement_y, groundLevel, obstacles) {
+        // console.log("input Movement:", movement_x, movement_y);
+        //console.log('current Movement:', this.movement_x, this.movement_y);
 
         this.movement_x = movement_x !== null ? movement_x : this.movement_x;
 
-        if (movement_y === -1 && groundLevel <= this.y + this.height) {
-            movement_y = -JUMP;
-        }
+        const onGround = this.y + this.height >= groundLevel || obstacles.some(obstacle =>
+            obstacle.top <= this.y + this.height && obstacle.bottom >= this.y + this.height &&
+            obstacle.left <= this.x + this.width && obstacle.right >= this.x
+        );
+        // const isJumping = this.movement_y < 0;
+        // const isFalling = this.movement_y > 0;
 
-        this.movement_y = movement_y !== null ? movement_y : this.movement_y;
+        this.movement_y = movement_y !== null && onGround ? movement_y : this.movement_y;
 
         return this;
+    }
+
+    /**
+     * @param {function callback() {}} callback 
+     * @returns 
+     */
+    movementPattern(callback) {
+
+        return this
     }
 }
 
@@ -120,6 +153,15 @@ class GameEntities {
             height: window.innerHeight / 3,
             color: 'green'
         });
+        this.platforms = [new Obstacle({
+            x: 100,
+            y: this.ground.y - 150,
+            width: 300,
+            height: 10,
+            color: 'black'
+        })];
+
+        setInterval(() => this.addEnemy(), 1000 * 10);
     }
 
     addEnemy() {
@@ -134,9 +176,11 @@ class GameEntities {
     }
 
     nextState() {
-        this.player.nextPosition(this.ground.level());
-        this.enemies.forEach(enemy => enemy.nextPosition(this.ground.level()));
-        this.ground.checkCollision(this.player) ? this.player.newMovement(null, 0, this.ground.level()) : null;
+        const platformParams = this.platforms.map(platform => platform.size());
+        const groundLevel = this.ground.size().top;
+
+        this.player.nextPosition(groundLevel, platformParams);
+        this.enemies.forEach(enemy => enemy.nextPosition(groundLevel, platformParams));
 
         return this;
     }
@@ -157,6 +201,11 @@ class GameEntities {
         ctx.fillStyle = this.ground.color;
         ctx.fillRect(this.ground.x, this.ground.y, this.ground.width, this.ground.height);
 
+        this.platforms.forEach(platform => {
+            ctx.fillStyle = platform.color;
+            ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+        });
+
         return this;
     }
 
@@ -169,11 +218,11 @@ class GameEntities {
             if (event.type === 'keydown') {
                 const key = event.key;
                 const movement = keyToMovement[key];
-                this.player.newMovement(movement.x || null, movement.y || null, this.ground.level());
+                this.player.newMovement(movement.x || null, movement.y || null, this.ground.size().top, this.platforms.map(platform => platform.size()));
             } else if (event.type === 'keyup') {
                 const key = event.key;
                 const movement = keyToMovement[key];
-                this.player.newMovement(movement.x ? 0 : null, movement.y ? 0 : null, this.ground.level());
+                this.player.newMovement(movement.x ? 0 : null, movement.y ? 0 : null, this.ground.size().top, this.platforms.map(platform => platform.size()));
             }
         }
         return this;
