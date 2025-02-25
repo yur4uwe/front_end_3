@@ -1,6 +1,7 @@
 import { GameEntities } from './declarations.js';
 
 let fps = 0;
+let animationFrameId = null;
 
 /**
  * @param {HTMLHeadingElement} element 
@@ -22,7 +23,8 @@ const eventCapturer = () => {
     document.addEventListener('mouseup', (event) => events.push(event));
 };
 
-const acceptedKeys = ["w", "a", "s", "d"];
+const acceptedKeys = ["w", "a", "s", "d", "escape", " ", "shift"];
+let enemySpawnInterval = null;
 
 /**
  * @param {GameEntities} state 
@@ -30,9 +32,9 @@ const acceptedKeys = ["w", "a", "s", "d"];
  * @param {number} windowHeight
  * @param {number} windowWidth
  * @param {HTMLHeadingElement} warningElement
- * @param {HTMLHeadingElement} scoreElement
+ * @param {HTMLElement} parentElement
  */
-const gameLoop = (state, ctx, windowHeight, windowWidth, warningElement, scoreElement) => {
+const gameLoop = (state, ctx, windowHeight, windowWidth, warningElement, parentElement) => {
     fps++;
     const capturedEvents = events.splice(0, events.length);
 
@@ -43,7 +45,7 @@ const gameLoop = (state, ctx, windowHeight, windowWidth, warningElement, scoreEl
         return;
     } else if (!state) {
         state = new GameEntities();
-        setInterval(() => state.addEnemy(warningElement), 10000);
+        enemySpawnInterval = setInterval(() => state.addEnemy(warningElement), 10000);
     }
 
     state = state
@@ -52,9 +54,16 @@ const gameLoop = (state, ctx, windowHeight, windowWidth, warningElement, scoreEl
         .nextState()
         .drawState(ctx);
 
+    if (state.player.lives <= 0) {
+        clearInterval(enemySpawnInterval);
+        cancelAnimationFrame(animationFrameId);
+        parentElement.gameEnd();
+        return;
+    }
+
     eventCapturer();
 
-    requestAnimationFrame(() => gameLoop(state, ctx, windowHeight, windowWidth));
+    animationFrameId = requestAnimationFrame(() => gameLoop(state, ctx, windowHeight, windowWidth, warningElement, parentElement));
 };
 
 export { gameLoop, drawFps };
