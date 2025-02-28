@@ -137,13 +137,16 @@ class Game extends HTMLElement {
 
         this.shadowRoot.appendChild(endGameMenu);
 
-        API.url('/api/score')
+        const username = localStorage.getItem('username');
+
+        API.requestBuilder()
+            .url('/api/score')
             .method('POST')
-            .body({ score })
+            .body({ username, score, time: new Date().toISOString() })
             .send()
             .then(() => console.log('Score sent to server'))
             .catch((err) => console.error(err));
-    }   
+    }
 
     async startGameLoop() {
         const canvas = this.shadowRoot.getElementById('game');

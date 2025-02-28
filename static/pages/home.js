@@ -40,6 +40,7 @@ class Home extends HTMLElement {
                 .send();
 
             console.log(response);
+            localStorage.setItem('username', username);
 
             if (response.status === "success") {
                 navigate('/game');

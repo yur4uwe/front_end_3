@@ -57,7 +57,7 @@ class Entity {
     /**
      * @param {{x: number, y: number, width: number, height: number, color: string, movement_x: number, movement_y: number }} param0 
      */
-    constructor({ x, y, width, height, color, movement_x = 0, movement_y = 0, HORIZONTAL_SPEED = 3 }) {
+    constructor({ x, y, width, height, color, movement_x = 0, movement_y = 0, HORIZONTAL_SPEED = 6 }) {
         this.x = x;
         this.y = y;
         this.width = width;
@@ -199,26 +199,26 @@ class Entity {
 
         switch (type) {
             case 'dash':
+                this.HORIZONTAL_SPEED = 24;
+                this.isImmune = true;
+                this.dashOnCooldown = true;
+                this.ignoresGravity = true;
                 activeScript = () => {
-                    this.HORIZONTAL_SPEED = 24;
-                    this.isImmune = true;
-                    this.dashOnCooldown = true;
-
-                    this.ignoresGravity = true;
                     framesNumber -= 1;
                     if (framesNumber === 0) {
                         this.isScripted = false;
                         this.activeScript = null;
                         this.ignoresGravity = false;
                         this.isImmune = false;
-                        this.HORIZONTAL_SPEED = 3;
-                        this.horizontalMovementStack[0] = 0;
+                        this.HORIZONTAL_SPEED = 6;
+                        this.horizontalMovementStack[0] = this.horizontalMovementStack[1];
+                        this.horizontalMovementStack[1] = 0;
                         setTimeout(() => this.dashOnCooldown = false, 2000);
                     }
                 };
                 break;
-            }
-        
+        }
+
 
         return activeScript;
     }
@@ -269,7 +269,7 @@ class Player extends Entity {
                 console.log('Invalid key pressed', event.key);
                 continue;
             }
-            
+
             if (event.type === 'keydown') {
                 if (movement.x !== undefined) {
                     if (this.horizontalMovementStack[0] === 0 && Math.abs(movement.x) === 1) {
@@ -277,6 +277,7 @@ class Player extends Entity {
                     } else if (!this.dashOnCooldown && Math.abs(movement.x) === 2 && Math.abs(this.horizontalMovementStack[0]) === 1) {
                         this.activeScript = this.script("dash", 15);
                         this.isScripted = true;
+                        this.horizontalMovementStack[1] = this.horizontalMovementStack[0];
                     } else if (this.horizontalMovementStack[1] === 0 && this.horizontalMovementStack[0] !== movement.x) {
                         this.horizontalMovementStack[1] = movement.x;
                     }
@@ -381,13 +382,43 @@ class GameEntities {
         /**
          * @type {Obstacle[]} platforms
          */
-        this.platforms = [new Obstacle({
-            x: 100,
-            y: this.ground.y - 150,
-            width: 300,
-            height: 10,
-            color: 'black'
-        })];
+        this.platforms = [
+            new Obstacle({
+                x: 300,
+                y: this.ground.y - 150,
+                width: 300,
+                height: 10,
+                color: 'black'
+            }),
+            new Obstacle({
+                x: 700,
+                y: this.ground.y - 300,
+                width: 200,
+                height: 10,
+                color: 'black'
+            }),
+            new Obstacle({
+                x: 300,
+                y: this.ground.y - 450,
+                width: 100,
+                height: 10,
+                color: 'black'
+            }),
+            new Obstacle({
+                x: window.innerWidth - 900,
+                y: this.ground.y - 300,
+                width: 200,
+                height: 10,
+                color: 'black'
+            }),
+            new Obstacle({
+                x: window.innerWidth - 600,
+                y: this.ground.y - 150,
+                width: 300,
+                height: 10,
+                color: 'black'
+            })
+        ];
     }
 
     /**
@@ -407,6 +438,9 @@ class GameEntities {
      * @param {HTMLHeadingElement} warningBox 
      */
     addEnemy(warningBox) {
+        if (this.enemiesToSpawn.length > 0 || this.enemies.length > 20) {
+            return;
+        }
         const enemy = new Enemy({
             x: Math.random() * window.innerWidth - 50,
             y: 1,
@@ -450,7 +484,7 @@ class GameEntities {
         if (enemyWhoCollided !== undefined) {
             const yDiff = player.y - enemyWhoCollided.y;
 
-            if (yDiff < -25 && player.movement_y > 0) {
+            if (player.movement_y > 0) {
                 // Collision from the top or bottom
                 player.score += 1;
                 player.newMovement(-1, this.ground.size().top, this.platforms.map(platform => platform.size()));

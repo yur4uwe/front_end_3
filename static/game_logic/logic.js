@@ -46,7 +46,7 @@ const gameLoop = (state, ctx, windowHeight, windowWidth, warningElement, parentE
         return;
     } else if (!state) {
         state = new GameEntities();
-        enemySpawnInterval = setInterval(() => state.addEnemy(warningElement), 10000);
+        enemySpawnInterval = setInterval(() => state.addEnemy(warningElement), 8000);
     }
 
     state = state

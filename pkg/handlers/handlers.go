@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"fr_lab_3/pkg/response"
-	"fr_lab_3/pkg/token"
 )
 
 func Home(w http.ResponseWriter, r *http.Request) {
@@ -20,15 +19,10 @@ func Home(w http.ResponseWriter, r *http.Request) {
 func Login(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Login handler")
 
-	token := token.CreateToken("login")
-	fmt.Println("Token: ", token)
-
 	res := response.InitRes()
 
 	res.SetStatus("success").
 		SetCode(http.StatusOK).
-		SetData(map[string]string{"token": token}).
-		SetPattern("{token: string}").
 		Send(w)
 }
 
@@ -37,6 +31,7 @@ func Score(w http.ResponseWriter, r *http.Request) {
 	type Score struct {
 		Username string `json:"username"`
 		Score    int    `json:"score"`
+		Time     string `json:"time"`
 	}
 
 	var score Score
@@ -56,7 +51,9 @@ func Score(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := os.ReadFile("../user_data.json")
+	fmt.Println("Score: ", score)
+
+	file, err := os.ReadFile("../data/user_data.json")
 	if err != nil {
 		fmt.Println(err)
 		response.InitRes().SendError(w, http.StatusInternalServerError)
@@ -80,7 +77,7 @@ func Score(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = os.WriteFile("../user_data.json", file, 0644)
+	err = os.WriteFile("../data/user_data.json", file, 0644)
 	if err != nil {
 		fmt.Println(err)
 		response.InitRes().SendError(w, http.StatusInternalServerError)
