@@ -1,5 +1,6 @@
 import { gameLoop, drawFps } from '../game_logic/logic.js';
 import { navigate } from '../api/router.js';
+import API from '../api/requester.js';
 
 class Game extends HTMLElement {
     constructor() {
@@ -52,7 +53,11 @@ class Game extends HTMLElement {
         this.startGameLoop();
     }
 
-    gameEnd() {
+    /**
+     * 
+     * @param {number} score 
+     */
+    gameEnd(score) {
         console.log("Game ended");
         const canvas = this.shadowRoot.getElementById("game");
         /**
@@ -85,6 +90,11 @@ class Game extends HTMLElement {
         endGameText.innerText = 'Game Over';
 
         endGameMenu.appendChild(endGameText);
+
+        const scoreEl = document.createElement('h2');
+        scoreEl.innerText = `Score: ${score}`;
+
+        endGameMenu.appendChild(scoreEl);
 
         const Restart = document.createElement('button');
         Restart.innerText = 'Restart';
@@ -126,7 +136,14 @@ class Game extends HTMLElement {
         endGameMenu.appendChild(container);
 
         this.shadowRoot.appendChild(endGameMenu);
-    }
+
+        API.url('/api/score')
+            .method('POST')
+            .body({ score })
+            .send()
+            .then(() => console.log('Score sent to server'))
+            .catch((err) => console.error(err));
+    }   
 
     async startGameLoop() {
         const canvas = this.shadowRoot.getElementById('game');

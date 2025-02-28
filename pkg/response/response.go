@@ -47,8 +47,8 @@ func (r *Response) JSONify() (string, error) {
 	}
 }
 
-func InitRes() Response {
-	return Response{}
+func InitRes() *Response {
+	return &Response{}
 }
 
 func (r *Response) SetStatus(status string) *Response {

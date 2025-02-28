@@ -23,7 +23,8 @@ const eventCapturer = () => {
     document.addEventListener('mouseup', (event) => events.push(event));
 };
 
-const acceptedKeys = ["w", "a", "s", "d", "escape", " ", "shift"];
+const acceptedKeys = ["w", "a", "s", "d", "A", "D", "escape", " ", "Shift"];
+
 let enemySpawnInterval = null;
 
 /**
@@ -57,7 +58,7 @@ const gameLoop = (state, ctx, windowHeight, windowWidth, warningElement, parentE
     if (state.player.lives <= 0) {
         clearInterval(enemySpawnInterval);
         cancelAnimationFrame(animationFrameId);
-        parentElement.gameEnd();
+        parentElement.gameEnd(state.player.score);
         return;
     }
 

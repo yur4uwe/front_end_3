@@ -13,6 +13,7 @@ func main() {
 
 	http.HandleFunc("/", handlers.Home)
 	http.HandleFunc("/api/login", handlers.Login)
+	http.HandleFunc("/api/score", handlers.Score)
 
 	handler := middleware.Logger(http.DefaultServeMux)
 

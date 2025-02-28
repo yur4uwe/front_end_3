@@ -57,7 +57,7 @@ class Entity {
     /**
      * @param {{x: number, y: number, width: number, height: number, color: string, movement_x: number, movement_y: number }} param0 
      */
-    constructor({ x, y, width, height, color, movement_x = 0, movement_y = 0, HORIZONTAL_SPEED = 5 }) {
+    constructor({ x, y, width, height, color, movement_x = 0, movement_y = 0, HORIZONTAL_SPEED = 3 }) {
         this.x = x;
         this.y = y;
         this.width = width;
@@ -71,6 +71,8 @@ class Entity {
         this.isPlunging = false;
         this.attack = null;
         this.activeScript = null;
+        this.ignoresGravity = false;
+        this.dashOnCooldown = false;
     }
 
     /**
@@ -79,6 +81,15 @@ class Entity {
      * @returns {Entity}
      */
     nextPosition(groundLevel, obstacles, enemyKilled, ignoresObstacles = false) {
+        if (this.activeScript === null) {
+            this.isScripted = false;
+            this.activeScript = null;
+            this.ignoresGravity = false;
+        }
+        if (this.isScripted) {
+            this.activeScript();
+        }
+
         const relevantObstacles = obstacles.filter(obstacle => obstacle.left <= this.x + this.width && obstacle.right >= this.x);
 
         const onGround = relevantObstacles.some(obstacle => isTouchingGround(this, obstacle));
@@ -96,7 +107,7 @@ class Entity {
 
         this.x += this.horizontalMovementStack[0] * this.HORIZONTAL_SPEED;
 
-        if ((this.y + this.height < groundLevel && !onGround) || ignoresObstacles) {
+        if (((this.y + this.height < groundLevel && !onGround) || ignoresObstacles) && !this.ignoresGravity) {
             if (this.isPlunging) {
                 this.movement_y += 1;
             }
@@ -134,7 +145,7 @@ class Entity {
             this.movement_y = GRAVITY;
         }
 
-        this.y += this.movement_y;
+        this.y += !this.ignoresGravity ? this.movement_y : 0;
 
         return this;
     }
@@ -172,20 +183,44 @@ class Entity {
     }
 
     /**
-     * @param 
-     * @returns 
-     */
-    scriptedMovement() {
-
-    }
-
-    /**
-     * 
+     * @param {Entity} entity 
      */
     makeAttack(entity) {
         this.attack = entity;
 
         setTimeout(() => this.attack = null, 100);
+    }
+
+    /**
+     * @param {string} type 
+     */
+    script(type, framesNumber) {
+        let activeScript = null;
+
+        switch (type) {
+            case 'dash':
+                activeScript = () => {
+                    this.HORIZONTAL_SPEED = 24;
+                    this.isImmune = true;
+                    this.dashOnCooldown = true;
+
+                    this.ignoresGravity = true;
+                    framesNumber -= 1;
+                    if (framesNumber === 0) {
+                        this.isScripted = false;
+                        this.activeScript = null;
+                        this.ignoresGravity = false;
+                        this.isImmune = false;
+                        this.HORIZONTAL_SPEED = 3;
+                        this.horizontalMovementStack[0] = 0;
+                        setTimeout(() => this.dashOnCooldown = false, 2000);
+                    }
+                };
+                break;
+            }
+        
+
+        return activeScript;
     }
 }
 
@@ -193,7 +228,11 @@ const keyToMovement = {
     w: { y: -1 },
     a: { x: -1 },
     s: { y: 1 },
-    d: { x: 1 }
+    d: { x: 1 },
+    A: { x: -2 },
+    D: { x: 2 },
+    Shift: { x: 2 },
+    ' ': { y: -1 },
 };
 
 class Player extends Entity {
@@ -221,13 +260,23 @@ class Player extends Entity {
      * @returns {Player}
      */
     readEvents(events, groundLevel, obstacles) {
+
         for (const event of events) {
+            const key = event.key;
+            const movement = keyToMovement[key];
+            // console.log('Key pressed', key);
+            if (movement === undefined) {
+                console.log('Invalid key pressed', event.key);
+                continue;
+            }
+            
             if (event.type === 'keydown') {
-                const key = event.key;
-                const movement = keyToMovement[key];
                 if (movement.x !== undefined) {
-                    if (this.horizontalMovementStack[0] === 0) {
+                    if (this.horizontalMovementStack[0] === 0 && Math.abs(movement.x) === 1) {
                         this.horizontalMovementStack[0] = movement.x;
+                    } else if (!this.dashOnCooldown && Math.abs(movement.x) === 2 && Math.abs(this.horizontalMovementStack[0]) === 1) {
+                        this.activeScript = this.script("dash", 15);
+                        this.isScripted = true;
                     } else if (this.horizontalMovementStack[1] === 0 && this.horizontalMovementStack[0] !== movement.x) {
                         this.horizontalMovementStack[1] = movement.x;
                     }
@@ -235,8 +284,6 @@ class Player extends Entity {
 
                 this.newMovement(movement.y || null, groundLevel, obstacles);
             } else if (event.type === 'keyup') {
-                const key = event.key;
-                const movement = keyToMovement[key];
                 if (movement.x !== undefined) {
                     if (this.horizontalMovementStack[0] === movement.x) {
                         this.horizontalMovementStack[0] = this.horizontalMovementStack[1];
@@ -320,6 +367,7 @@ class GameEntities {
          * @type {Enemy[]} enemies
          */
         this.enemies = [];
+        this.enemiesToSpawn = [];
         /**
          * @type {Obstacle} ground
          */
@@ -368,8 +416,10 @@ class GameEntities {
             movement_x: Math.random() * 2 - 1,
         });
         warningBox.innerText = 'Enemy incoming!';
+        this.enemiesToSpawn.push(enemy.x);
         setTimeout(() => {
             this.enemies.push(enemy);
+            this.enemiesToSpawn = this.enemiesToSpawn.filter(e => e !== enemy.x);
             warningBox.innerText = '';
         }, 3000);
     }
@@ -440,6 +490,14 @@ class GameEntities {
             ctx.fillRect(this.player.attack.x, this.player.attack.y, this.player.attack.width, this.player.attack.height);
         }
 
+        this.enemiesToSpawn.forEach(x_coord => {
+            ctx.strokeStyle = "red";
+            ctx.strokeRect(x_coord, 0, 50, 50);
+
+            ctx.fillStyle = "red";
+            ctx.fillText('!', x_coord + 22, 28);
+        });
+
         this.enemies.forEach(enemy => {
             ctx.fillStyle = enemy.color;
             ctx.fillRect(enemy.x, enemy.y, enemy.width, enemy.height);
@@ -454,6 +512,8 @@ class GameEntities {
         });
 
         this.drawHP(ctx, this.player.lives);
+
+        this.drawCooldown(ctx, this.player.dashOnCooldown);
 
         ctx.font = '20px Arial';
         ctx.fillStyle = 'black';
@@ -491,6 +551,18 @@ class GameEntities {
             ctx.restore();
 
             x += heartSize + heartPadding
+        }
+    }
+
+    /**
+     * 
+     * @param {CanvasRenderingContext2D} ctx 
+     * @param {Player} player 
+     */
+    drawCooldown(ctx, isOnCooldown) {
+        if (isOnCooldown) {
+            ctx.fillStyle = 'red';
+            ctx.fillText('Dash on cooldown', 5, 100);
         }
     }
 
