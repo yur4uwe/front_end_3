@@ -161,6 +161,6 @@ class RequestBuilder {
 //     .send()
 //     .then(response => console.log(response));
 
-const API = new Requester('http://localhost:8080');
+const API = new Requester(window.location.origin);
 
 export default API;
