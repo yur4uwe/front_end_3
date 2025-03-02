@@ -81,6 +81,7 @@ class Entity {
      * @returns {Entity}
      */
     nextPosition(groundLevel, obstacles, enemyKilled, ignoresObstacles = false) {
+        //console.log('Next position:', this.HORIZONTAL_SPEED, this.horizontalMovementStack);
         if (this.activeScript === null) {
             this.isScripted = false;
             this.activeScript = null;
@@ -506,6 +507,7 @@ class GameEntities {
         }
 
         if (enemiesHit.length > 0) {
+            player.score += enemiesHit.length;
             enemiesHit.forEach(enemy => this.registerKill(enemy));
         }
 

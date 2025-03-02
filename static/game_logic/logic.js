@@ -2,6 +2,8 @@ import { GameEntities } from './declarations.js';
 
 let fps = 0;
 let animationFrameId = null;
+let enemySpawnInterval = null;
+let isPaused = false;
 
 /**
  * @param {HTMLHeadingElement} element 
@@ -17,15 +19,14 @@ const drawFps = (element) => {
 const events = [];
 const eventClearer = () => events.splice(0, events.length);
 const eventCapturer = () => {
+
     document.addEventListener('keydown', (event) => acceptedKeys.includes(event.key) ? events.push(event) : null);
     document.addEventListener('keyup', (event) => acceptedKeys.includes(event.key) ? events.push(event) : null);
-    document.addEventListener('mousedown', (event) => events.push(event));
-    document.addEventListener('mouseup', (event) => events.push(event));
+    // document.addEventListener('mousedown', (event) => events.push(event));
+    // document.addEventListener('mouseup', (event) => events.push(event));
 };
 
-const acceptedKeys = ["w", "a", "s", "d", "A", "D", "escape", " ", "Shift"];
-
-let enemySpawnInterval = null;
+const acceptedKeys = ["w", "a", "s", "d", "A", "D", "Escape", " ", "Shift"];
 
 /**
  * @param {GameEntities} state 
@@ -34,18 +35,18 @@ let enemySpawnInterval = null;
  * @param {number} windowWidth
  * @param {HTMLHeadingElement} warningElement
  * @param {HTMLElement} parentElement
+ * @param {boolean} restartIntervals
  */
-const gameLoop = (state, ctx, windowHeight, windowWidth, warningElement, parentElement) => {
+const gameLoop = (state, ctx, windowHeight, windowWidth, warningElement, parentElement, restartIntervals) => {
     fps++;
-    const capturedEvents = events.splice(0, events.length);
+    const capturedEvents = eventClearer();
 
     ctx.clearRect(0, 0, windowWidth, windowHeight);
 
     if (!ctx) {
         console.error('Canvas not found');
         return;
-    } else if (!state) {
-        state = new GameEntities();
+    } else if (restartIntervals) {
         enemySpawnInterval = setInterval(() => state.addEnemy(warningElement), 8000);
     }
 
@@ -62,9 +63,26 @@ const gameLoop = (state, ctx, windowHeight, windowWidth, warningElement, parentE
         return;
     }
 
+    if (capturedEvents.some(event => event.key === 'Escape')) {
+        if (!isPaused) {
+            isPaused = true;
+            capturedEvents.splice(0, capturedEvents.length);
+            clearInterval(enemySpawnInterval);
+            cancelAnimationFrame(animationFrameId);
+            parentElement.gamePause(state.player.score, state);
+            return;
+        }
+    }
+
     eventCapturer();
 
-    animationFrameId = requestAnimationFrame(() => gameLoop(state, ctx, windowHeight, windowWidth, warningElement, parentElement));
+    animationFrameId = requestAnimationFrame(() => gameLoop(state, ctx, windowHeight, windowWidth, warningElement, parentElement, false));
 };
 
-export { gameLoop, drawFps };
+const resumeGame = (state, ctx, windowHeight, windowWidth, warningElement, parentElement) => {
+    isPaused = false;
+    eventClearer();
+    gameLoop(state, ctx, windowHeight, windowWidth, warningElement, parentElement, true);
+};
+
+export { gameLoop, drawFps, resumeGame };

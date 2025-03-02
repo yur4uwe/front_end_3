@@ -9,12 +9,11 @@ import (
 type Response struct {
 	Status  string
 	Code    int
-	Data    map[string]string
+	Data    interface{}
 	Pattern string
 }
 
 func (r *Response) JSONify() (string, error) {
-
 	json_repr := "{"
 
 	statusObj := fmt.Sprintf("\"status\": \"%s\"", r.GetStatus())
@@ -22,15 +21,16 @@ func (r *Response) JSONify() (string, error) {
 	codeObj := fmt.Sprintf("\"code\": %d", r.GetCode())
 	json_repr += codeObj
 
-	var dataObj string
 	if r.Data != nil {
-		dataObj = fmt.Sprintf("\"data\": %s", r.StringifyData())
-		json_repr += ", " + dataObj
+		dataObj, err := r.StringifyData()
+		if err != nil {
+			return "", err
+		}
+		json_repr += ", \"data\": " + dataObj
 	}
 
-	var patternObj string
 	if r.GetPattern() != "" {
-		patternObj = fmt.Sprintf("\"pattern\": \"%s\"", r.GetPattern())
+		patternObj := fmt.Sprintf("\"pattern\": \"%s\"", r.GetPattern())
 		json_repr += ", " + patternObj
 	}
 
@@ -61,7 +61,7 @@ func (r *Response) SetCode(code int) *Response {
 	return r
 }
 
-func (r *Response) SetData(data map[string]string) *Response {
+func (r *Response) SetData(data interface{}) *Response {
 	r.Data = data
 	return r
 }
@@ -82,18 +82,16 @@ func (r *Response) GetCode() int {
 	return r.Code
 }
 
-func (r *Response) GetData() map[string]string {
+func (r *Response) GetData() interface{} {
 	return r.Data
 }
 
-func (r *Response) StringifyData() string {
-	data := r.GetData()
-	var data_str string = "{"
-	for key, value := range data {
-		data_str += fmt.Sprintf("\"%s\":\"%s\",", key, value)
+func (r *Response) StringifyData() (string, error) {
+	data, err := json.Marshal(r.GetData())
+	if err != nil {
+		return "", err
 	}
-	data_str = data_str[:len(data_str)-1] + "}"
-	return data_str
+	return string(data), nil
 }
 
 func (r *Response) GetPattern() string {
@@ -109,9 +107,11 @@ func (r *Response) SendError(w http.ResponseWriter, statusCode int) {
 func (r *Response) Send(writer http.ResponseWriter) {
 	json_repr, err := r.JSONify()
 	if err != nil {
-		fmt.Println(err)
+		fmt.Println("Error jsonifying data:", err)
 		r.SendError(writer, 500)
 		return
 	}
+	writer.Header().Set("Content-Type", "application/json")
+	writer.WriteHeader(r.GetCode())
 	writer.Write([]byte(json_repr))
 }

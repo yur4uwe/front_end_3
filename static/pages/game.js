@@ -1,6 +1,7 @@
-import { gameLoop, drawFps } from '../game_logic/logic.js';
+import { gameLoop, drawFps, resumeGame } from '../game_logic/logic.js';
 import { navigate } from '../api/router.js';
 import API from '../api/requester.js';
+import { GameEntities } from '../game_logic/declarations.js';
 
 class Game extends HTMLElement {
     constructor() {
@@ -50,7 +51,7 @@ class Game extends HTMLElement {
     }
 
     connectedCallback() {
-        this.startGameLoop();
+        this.startGameLoop(this.state);
     }
 
     /**
@@ -59,20 +60,58 @@ class Game extends HTMLElement {
      */
     gameEnd(score) {
         console.log("Game ended");
+
+        this.gameMenu(false, score);
+    }
+
+    /**
+     * 
+     * @param {number} score 
+     * @param {GameEntities} state 
+     */
+    gamePause(score, state) {
+        console.log("Game paused");
+
+        this.gameMenu(true, score, state);
+    }
+
+    /**
+     * 
+     * @param {GameEntities} state 
+     */
+    async startGameLoop(state) {
+        const canvas = this.shadowRoot.getElementById('game');
+
+        // Set the canvas size to match the display size
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const ctx = canvas.getContext('2d');
+
+        console.log("Game screen loaded, starting game loop");
+        setInterval(() => drawFps(this.shadowRoot.getElementById("fps")), 1000);
+        gameLoop(state, ctx, window.innerHeight, window.innerWidth, this.shadowRoot.getElementById("warning"), this, true);
+    }
+
+    /**
+     * @param {boolean} isPaused
+     * @param {boolean} score  true if game is paused, false if game is over
+     * @param {GameEntities | null} state 
+     */
+    gameMenu(isPaused, score, state = null) {
+        console.log("Game menu");
         const canvas = this.shadowRoot.getElementById("game");
         /**
          * @type {CanvasRenderingContext2D} ctx
          */
         const ctx = canvas.getContext('2d');
 
-        // Apply blur effect to the canvas
-
         ctx.filter = 'blur(50px)';
         ctx.drawImage(canvas, 0, 0);
 
-        const endGameMenu = document.createElement('div');
-        endGameMenu.id = 'endGameMenu';
-        endGameMenu.style = `
+        const gameMenu = document.createElement('div');
+        gameMenu.id = 'gameMenu';
+        gameMenu.style = `
             position: absolute;
             top: 50%;
             left: 50%;
@@ -87,20 +126,25 @@ class Game extends HTMLElement {
         `;
 
         const endGameText = document.createElement('h1');
-        endGameText.innerText = 'Game Over';
+        endGameText.innerText = isPaused ? "Game Paused" : 'Game Over';
 
-        endGameMenu.appendChild(endGameText);
+        gameMenu.appendChild(endGameText);
 
         const scoreEl = document.createElement('h2');
         scoreEl.innerText = `Score: ${score}`;
 
-        endGameMenu.appendChild(scoreEl);
+        gameMenu.appendChild(scoreEl);
 
-        const Restart = document.createElement('button');
-        Restart.innerText = 'Restart';
-        Restart.addEventListener('click', () => {
+        const gameWillProceed = document.createElement('button');
+        gameWillProceed.innerText = isPaused ? 'Resume' : 'Restart';
+        gameWillProceed.addEventListener('click', () => {
             ctx.filter = 'none';
-            navigate("/game");
+            if (isPaused) {
+                this.shadowRoot.getElementById("gameMenu").remove();
+                resumeGame(state, ctx, window.innerHeight, window.innerWidth, this.shadowRoot.getElementById("warning"), this);
+            } else {
+                navigate("/game", state);
+            }
         });
 
         const Exit = document.createElement('button');
@@ -110,7 +154,7 @@ class Game extends HTMLElement {
             navigate("/");
         });
 
-        Restart.style = `
+        gameWillProceed.style = `
             width: 100px; 
             height: 30px;
             margin: 5px;
@@ -130,36 +174,24 @@ class Game extends HTMLElement {
             width: 100%;
         `;
 
-        container.appendChild(Restart);
+        container.appendChild(gameWillProceed);
         container.appendChild(Exit);
 
-        endGameMenu.appendChild(container);
+        gameMenu.appendChild(container);
 
-        this.shadowRoot.appendChild(endGameMenu);
+        this.shadowRoot.appendChild(gameMenu);
 
-        const username = localStorage.getItem('username');
+        if (!isPaused) {
+            const username = localStorage.getItem('username');
 
-        API.requestBuilder()
-            .url('/api/score')
-            .method('POST')
-            .body({ username, score, time: new Date().toISOString() })
-            .send()
-            .then(() => console.log('Score sent to server'))
-            .catch((err) => console.error(err));
-    }
-
-    async startGameLoop() {
-        const canvas = this.shadowRoot.getElementById('game');
-
-        // Set the canvas size to match the display size
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        const ctx = canvas.getContext('2d');
-
-        console.log("Game screen loaded, starting game loop");
-        setInterval(() => drawFps(this.shadowRoot.getElementById("fps")), 1000);
-        gameLoop(null, ctx, window.innerHeight, window.innerWidth, this.shadowRoot.getElementById("warning"), this);
+            API.requestBuilder()
+                .url('/api/score')
+                .method('POST')
+                .body({ username, score, time: new Date().toISOString() })
+                .send()
+                .then(() => console.log('Score sent to server'))
+                .catch((err) => console.error(err));
+        }
     }
 }
 

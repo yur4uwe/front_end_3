@@ -1,6 +1,11 @@
 import API from '../api/requester.js';
 import { navigate } from '../api/router.js';
 
+function parseTime(time) {
+    const date = new Date(time);
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+}
+
 class Home extends HTMLElement {
     constructor() {
         super();
@@ -26,7 +31,39 @@ class Home extends HTMLElement {
                 <input type="text" name="username" placeholder="Username" required> 
                 <button type="submit">Start</button>
             </form>
+            <div id="prev-scores"></div>
         `;
+
+        const userName = localStorage.getItem("username");
+        if (userName) {
+            this.shadowRoot.getElementById('login').querySelector("input[type=text]").value = userName;
+        }
+
+        const scores = this.shadowRoot.getElementById('prev-scores');
+        API.requestBuilder()
+            .url('/api/scores')
+            .method(API.Methods.GET)
+            .param([
+                { paramName: "username", paramVal: userName },
+                { paramName: "limit", paramVal: 5 }
+            ])
+            .send()
+
+            .then(response => {
+                /**
+                 * @type {{score:number,username:string,time:string}[]} lastScores
+                 */
+                const lastScores = response.data;
+                console.log(lastScores);
+                if (response.status === "success") {
+                    scores.innerHTML = "<h2>Previous Scores</h2>";
+                    if (response.data.length === 0) {
+                        scores.innerHTML += "<p>No scores yet</p>";
+                    }
+
+                    scores.innerHTML += lastScores.map(score => `<p> Score: ${score.score} at ${parseTime(score.time)}</p>`).join('');
+                }
+            });
 
         this.shadowRoot.getElementById('login').addEventListener('submit', async (e) => {
             e.preventDefault();

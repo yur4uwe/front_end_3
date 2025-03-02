@@ -125,6 +125,16 @@ class RequestBuilder {
     }
 
     /**
+     * @param {{paramName: string, paramVal: string}[]} params 
+     */
+    param(params) {
+        console.log(params);
+        this.params.url += `?${params.map(param => `${param.paramName}=${param.paramVal}`).join('&')}`;
+        console.log(this.params.url);
+        return this;
+    }
+
+    /**
      * Sets the authorization token for the request.
      * @param {string} token - The authorization token.
      * @returns {RequestBuilder} The RequestBuilder instance.
