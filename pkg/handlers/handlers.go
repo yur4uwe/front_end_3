@@ -8,6 +8,7 @@ import (
 	"os"
 	"sort"
 	"strconv"
+	"time"
 
 	"fr_lab_3/pkg/response"
 )
@@ -131,7 +132,13 @@ func GetScore(w http.ResponseWriter, r *http.Request) {
 	}
 
 	sort.Slice(data, func(i, j int) bool {
-		return data[i].Score > data[j].Score
+		timeI, errI := time.Parse(time.RFC3339, data[i].Time)
+		timeJ, errJ := time.Parse(time.RFC3339, data[j].Time)
+		if errI != nil || errJ != nil {
+			fmt.Println("Error parsing time", errI, errJ)
+			return false
+		}
+		return timeI.After(timeJ)
 	})
 
 	var scores []Score

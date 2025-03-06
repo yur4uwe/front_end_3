@@ -1,5 +1,5 @@
-const GRAVITY = 1;
-const JUMP = 20;
+const GRAVITY = 0.5;
+const JUMP = 15;
 
 const plungingAttack = (x, y, width, height) => {
     return new Entity({
@@ -57,7 +57,7 @@ class Entity {
     /**
      * @param {{x: number, y: number, width: number, height: number, color: string, movement_x: number, movement_y: number }} param0 
      */
-    constructor({ x, y, width, height, color, movement_x = 0, movement_y = 0, HORIZONTAL_SPEED = 6 }) {
+    constructor({ x, y, width, height, color, movement_x = 0, movement_y = 0, HORIZONTAL_SPEED = 3 }) {
         this.x = x;
         this.y = y;
         this.width = width;
@@ -211,7 +211,7 @@ class Entity {
                         this.activeScript = null;
                         this.ignoresGravity = false;
                         this.isImmune = false;
-                        this.HORIZONTAL_SPEED = 6;
+                        this.HORIZONTAL_SPEED = 3;
                         this.horizontalMovementStack[0] = this.horizontalMovementStack[1];
                         this.horizontalMovementStack[1] = 0;
                         setTimeout(() => this.dashOnCooldown = false, 2000);
@@ -406,7 +406,7 @@ class GameEntities {
                 color: 'black'
             }),
             new Obstacle({
-                x: window.innerWidth - 900,
+                x: window.innerWidth - 700,
                 y: this.ground.y - 300,
                 width: 200,
                 height: 10,
@@ -443,7 +443,7 @@ class GameEntities {
             return;
         }
         const enemy = new Enemy({
-            x: Math.random() * window.innerWidth - 50,
+            x: Math.random() * (window.innerWidth - 250) + 100,
             y: 1,
             width: 50,
             height: 50,
@@ -531,7 +531,8 @@ class GameEntities {
             ctx.strokeRect(x_coord, 0, 50, 50);
 
             ctx.fillStyle = "red";
-            ctx.fillText('!', x_coord + 22, 28);
+            const txtMetr = ctx.measureText('!');
+            ctx.fillText('!', x_coord + 25 - txtMetr.width / 2, 25 + txtMetr.actualBoundingBoxAscent / 2);
         });
 
         this.enemies.forEach(enemy => {
